@@ -1,8 +1,8 @@
 package provider
 
 import (
-	"confremote-pilot/codec"
 	"errors"
+	"github.com/fufuzion/confremote-pilot/codec"
 )
 
 type Provider interface {

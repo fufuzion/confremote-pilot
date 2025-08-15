@@ -1,8 +1,8 @@
 package provider
 
 import (
-	"confremote-pilot/codec"
-	"confremote-pilot/mediator"
+	"github.com/fufuzion/confremote-pilot/codec"
+	"github.com/fufuzion/confremote-pilot/mediator"
 )
 
 type option struct {

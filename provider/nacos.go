@@ -1,8 +1,8 @@
 package provider
 
 import (
-	"confremote-pilot/codec"
 	"errors"
+	"github.com/fufuzion/confremote-pilot/codec"
 	"github.com/nacos-group/nacos-sdk-go/v2/clients"
 	"github.com/nacos-group/nacos-sdk-go/v2/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/v2/vo"

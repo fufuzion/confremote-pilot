@@ -1,9 +1,9 @@
 package confremote_pilot
 
 import (
-	"confremote-pilot/codec"
-	"confremote-pilot/provider"
 	"encoding/json"
+	"github.com/fufuzion/confremote-pilot/codec"
+	"github.com/fufuzion/confremote-pilot/provider"
 	"github.com/nacos-group/nacos-sdk-go/v2/common/constant"
 	"testing"
 	"time"

@@ -1,9 +1,9 @@
 package confremote_pilot
 
 import (
-	"confremote-pilot/codec"
-	"confremote-pilot/mediator"
-	"confremote-pilot/provider"
+	"github.com/fufuzion/confremote-pilot/codec"
+	"github.com/fufuzion/confremote-pilot/mediator"
+	"github.com/fufuzion/confremote-pilot/provider"
 	"github.com/spf13/viper"
 	"sync"
 	"sync/atomic"
