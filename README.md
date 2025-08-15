@@ -1,6 +1,6 @@
-# Config Bridge
+# Config Remote Pilot
 
-`Config Bridge` 是一个支持多配置源动态合并更新的Go库
+`Config Remote Pilot` 是一个支持多配置源动态合并更新的Go库
 
 ## ✨ 特性
 
@@ -13,7 +13,7 @@
 ## 📦 安装
 
 ```bash
-go get github.com/yourusername/config-bridge
+go get github.com/fufuzion/confremote-pilot.git
 
 
 
