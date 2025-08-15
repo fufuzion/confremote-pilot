@@ -1,0 +1,155 @@
+package confremote_pilot
+
+import (
+	"confremote-pilot/codec"
+	"confremote-pilot/mediator"
+	"confremote-pilot/provider"
+	"github.com/spf13/viper"
+	"sync"
+	"sync/atomic"
+)
+
+var bridge *Bridge
+var once sync.Once
+
+type Bridge struct {
+	vp          atomic.Value
+	mu          *sync.RWMutex
+	pvm         map[string]provider.Provider
+	coordinator *mediator.Coordinator
+	hook        func(key string, msg map[string]any)
+}
+
+func Instance() *Bridge {
+	once.Do(func() {
+		bridge = &Bridge{
+			vp:  atomic.Value{},
+			mu:  &sync.RWMutex{},
+			pvm: make(map[string]provider.Provider),
+		}
+		bridge.vp.Store(viper.New())
+		bridge.coordinator = mediator.NewCoordinator(bridge)
+
+	})
+	return bridge
+}
+
+func (b *Bridge) Config() *viper.Viper {
+	return b.vp.Load().(*viper.Viper)
+}
+func (b *Bridge) Get(key string) any {
+	return b.vp.Load().(*viper.Viper).Get(key)
+}
+func (b *Bridge) All() map[string]any {
+	return b.vp.Load().(*viper.Viper).AllSettings()
+}
+
+func (b *Bridge) SetHook(hook func(key string, msg map[string]any)) {
+	b.hook = hook
+}
+
+func (b *Bridge) Update(key string, msg map[string]any) {
+	mergeConfig := viper.New()
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	for _, pv := range b.pvm {
+		subConfig, err := pv.Load()
+		if err != nil {
+			return
+		}
+		err = mergeConfig.MergeConfigMap(subConfig)
+		if err != nil {
+			return
+		}
+	}
+	b.vp.Store(mergeConfig)
+	if b.hook != nil {
+		b.hook(key, msg)
+	}
+}
+
+/*
+	properties 为初始化client参数，内容跟随provider变化
+	provider = 'nacos'时：
+		properties := map[string]interface{}{
+			constant.KEY_CLIENT_CONFIG:  constant.ClientConfig{},
+			constant.KEY_SERVER_CONFIGS: []constant.ServerConfig{},
+		}
+*/
+
+type Config struct {
+	Provider   provider.CfgProviderType `json:"provider"`   // Provider CfgProviderType, e.g., "nacos".
+	Properties map[string]interface{}   `json:"properties"` // client and server init param.
+	Sources    []*provider.Source       `json:"sources"`
+	ConfigType codec.CfgFileType        `json:"config_type"`
+}
+
+func (b *Bridge) RegisterSource(key string, cfg *Config) error {
+	pv, err := provider.NewProvider(
+		cfg.Provider,
+		provider.WithMediator(b.coordinator),
+		provider.WithProperties(cfg.Properties),
+		provider.WithSources(cfg.Sources),
+		provider.WithConfigType(cfg.ConfigType),
+		provider.WithCustomKey(key),
+	)
+	if err != nil {
+		return err
+	}
+
+	newConfig := viper.New()
+	setting, err := pv.Load()
+	if err != nil {
+		return err
+	}
+	if err = newConfig.MergeConfigMap(setting); err != nil {
+		return err
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.pvm[key] = pv
+
+	current := b.vp.Load().(*viper.Viper).AllSettings()
+	if err = newConfig.MergeConfigMap(current); err != nil {
+		return err
+	}
+	b.vp.Store(newConfig)
+	return nil
+}
+
+func (b *Bridge) RegisterSourceBatch(sources map[string]*Config) error {
+	newConfig := viper.New()
+	for key, cfg := range sources {
+		pv, err := provider.NewProvider(
+			cfg.Provider,
+			provider.WithMediator(b.coordinator),
+			provider.WithProperties(cfg.Properties),
+			provider.WithSources(cfg.Sources),
+			provider.WithConfigType(cfg.ConfigType),
+			provider.WithCustomKey(key),
+		)
+		if err != nil {
+			return err
+		}
+		setting, err := pv.Load()
+		if err != nil {
+			return err
+		}
+		if err = newConfig.MergeConfigMap(setting); err != nil {
+			return err
+		}
+		b.mu.Lock()
+		b.pvm[key] = pv
+		b.mu.Unlock()
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	current := b.vp.Load().(*viper.Viper).AllSettings()
+	if err := newConfig.MergeConfigMap(current); err != nil {
+		return err
+	}
+	b.vp.Store(newConfig)
+	return nil
+}
