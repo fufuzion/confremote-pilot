@@ -10,7 +10,10 @@ type CfgProviderType string
 func (p CfgProviderType) ToString() string { return string(p) }
 
 const (
-	CfgProviderNacos CfgProviderType = "nacos"
+	CfgProviderNacos     CfgProviderType = "nacos"
+	CfgProviderEtcd      CfgProviderType = "etcd"
+	CfgProviderConsul    CfgProviderType = "consul"
+	CfgProviderFirestore CfgProviderType = "firestore"
 )
 
 const (

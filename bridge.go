@@ -1,6 +1,7 @@
 package confremote_pilot
 
 import (
+	"context"
 	"github.com/fufuzion/confremote-pilot/codec"
 	"github.com/fufuzion/confremote-pilot/mediator"
 	"github.com/fufuzion/confremote-pilot/provider"
@@ -13,6 +14,7 @@ var bridge *Bridge
 var once sync.Once
 
 type Bridge struct {
+	ctx         context.Context
 	vp          atomic.Value
 	mu          *sync.RWMutex
 	pvm         map[string]provider.Provider
@@ -20,9 +22,10 @@ type Bridge struct {
 	hook        func(key string, msg map[string]any)
 }
 
-func Instance() *Bridge {
+func Instance(ctx context.Context) *Bridge {
 	once.Do(func() {
 		bridge = &Bridge{
+			ctx: ctx,
 			vp:  atomic.Value{},
 			mu:  &sync.RWMutex{},
 			pvm: make(map[string]provider.Provider),
@@ -86,6 +89,7 @@ type Config struct {
 
 func (b *Bridge) RegisterSource(key string, cfg *Config) error {
 	pv, err := provider.NewProvider(
+		b.ctx,
 		cfg.Provider,
 		provider.WithMediator(b.coordinator),
 		provider.WithProperties(cfg.Properties),
@@ -122,6 +126,7 @@ func (b *Bridge) RegisterSourceBatch(sources map[string]*Config) error {
 	newConfig := viper.New()
 	for key, cfg := range sources {
 		pv, err := provider.NewProvider(
+			b.ctx,
 			cfg.Provider,
 			provider.WithMediator(b.coordinator),
 			provider.WithProperties(cfg.Properties),
