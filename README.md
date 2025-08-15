@@ -13,7 +13,7 @@
 ## 📦 安装
 
 ```bash
-go get github.com/fufuzion/confremote-pilot.git
+go get github.com/fufuzion/confremote-pilot
 
 
 

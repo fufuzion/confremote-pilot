@@ -1,4 +1,4 @@
-module confremote-pilot
+module github.com/fufuzion/confremote-pilot
 
 go 1.23.1
 
