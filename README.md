@@ -4,7 +4,7 @@
 
 ## ✨ 特性
 
-- 支持 **多Provider**（目前仅封装了nacos）
+- 支持 **多Provider**（目前支持了`nacos`,`etcd`,`consul`,`firestore`,`zookeeper`）
 - 支持跨云平台/跨组件/跨配置文件类型，多命名空间、多组配置源组合使用
 - 自动合并多源配置，感知配置增减
 - 支持自定义 Hook 回调监听配置变化
