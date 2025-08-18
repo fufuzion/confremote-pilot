@@ -78,13 +78,18 @@ func (b *Bridge) Update(key string, msg map[string]any) {
 			constant.KEY_CLIENT_CONFIG:  constant.ClientConfig{},
 			constant.KEY_SERVER_CONFIGS: []constant.ServerConfig{},
 		}
+	provider = 'etcd' | 'consul' | 'firestore'时：
+		properties := map[string]interface{}{
+			"endpoint": string,
+			"path": string,
+		}
 */
 
 type Config struct {
-	Provider   provider.CfgProviderType `json:"provider"`   // Provider CfgProviderType, e.g., "nacos".
-	Properties map[string]interface{}   `json:"properties"` // client and server init param.
-	Sources    []*provider.Source       `json:"sources"`
-	ConfigType codec.CfgFileType        `json:"config_type"`
+	Provider   provider.CfgProviderType `json:"provider"`    // Provider CfgProviderType, e.g., "nacos".
+	Properties map[string]interface{}   `json:"properties"`  // client and server init param.
+	Sources    []*provider.Source       `json:"sources"`     // nacos支持同一个实例下支持加载多个source，provider='nacos'时必传
+	ConfigType codec.CfgFileType        `json:"config_type"` // 配置文件的格式类型，目前支持"yaml"和"json"
 }
 
 func (b *Bridge) RegisterSource(key string, cfg *Config) error {
