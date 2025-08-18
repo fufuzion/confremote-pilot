@@ -1,6 +1,7 @@
 package confremote_pilot
 
 import (
+	"context"
 	"github.com/fufuzion/confremote-pilot/codec"
 	"github.com/fufuzion/confremote-pilot/mediator"
 	"github.com/fufuzion/confremote-pilot/provider"
@@ -13,6 +14,7 @@ var bridge *Bridge
 var once sync.Once
 
 type Bridge struct {
+	ctx         context.Context
 	vp          atomic.Value
 	mu          *sync.RWMutex
 	pvm         map[string]provider.Provider
@@ -20,9 +22,10 @@ type Bridge struct {
 	hook        func(key string, msg map[string]any)
 }
 
-func Instance() *Bridge {
+func Instance(ctx context.Context) *Bridge {
 	once.Do(func() {
 		bridge = &Bridge{
+			ctx: ctx,
 			vp:  atomic.Value{},
 			mu:  &sync.RWMutex{},
 			pvm: make(map[string]provider.Provider),
@@ -75,17 +78,23 @@ func (b *Bridge) Update(key string, msg map[string]any) {
 			constant.KEY_CLIENT_CONFIG:  constant.ClientConfig{},
 			constant.KEY_SERVER_CONFIGS: []constant.ServerConfig{},
 		}
+	provider = 'etcd' | 'consul' | 'firestore'时：
+		properties := map[string]interface{}{
+			"endpoint": string,
+			"path": string,
+		}
 */
 
 type Config struct {
-	Provider   provider.CfgProviderType `json:"provider"`   // Provider CfgProviderType, e.g., "nacos".
-	Properties map[string]interface{}   `json:"properties"` // client and server init param.
-	Sources    []*provider.Source       `json:"sources"`
-	ConfigType codec.CfgFileType        `json:"config_type"`
+	Provider   provider.CfgProviderType `json:"provider"`    // Provider CfgProviderType, e.g., "nacos".
+	Properties map[string]interface{}   `json:"properties"`  // client and server init param.
+	Sources    []*provider.Source       `json:"sources"`     // nacos支持同一个实例下支持加载多个source，provider='nacos'时必传
+	ConfigType codec.CfgFileType        `json:"config_type"` // 配置文件的格式类型，目前支持"yaml"和"json"
 }
 
 func (b *Bridge) RegisterSource(key string, cfg *Config) error {
 	pv, err := provider.NewProvider(
+		b.ctx,
 		cfg.Provider,
 		provider.WithMediator(b.coordinator),
 		provider.WithProperties(cfg.Properties),
@@ -122,6 +131,7 @@ func (b *Bridge) RegisterSourceBatch(sources map[string]*Config) error {
 	newConfig := viper.New()
 	for key, cfg := range sources {
 		pv, err := provider.NewProvider(
+			b.ctx,
 			cfg.Provider,
 			provider.WithMediator(b.coordinator),
 			provider.WithProperties(cfg.Properties),

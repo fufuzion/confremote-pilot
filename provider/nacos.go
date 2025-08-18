@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"errors"
 	"github.com/fufuzion/confremote-pilot/codec"
 	"github.com/nacos-group/nacos-sdk-go/v2/clients"
@@ -13,6 +14,7 @@ import (
 // https://nacos.io/docs/latest/manual/user/go-sdk/usage/
 // nacosProvider 包装nacos-group/nacos-sdk-go/v2
 type nacosProvider struct {
+	ctx    context.Context
 	tp     CfgProviderType
 	mu     *sync.RWMutex
 	data   map[string]map[string]interface{}
@@ -22,7 +24,7 @@ type nacosProvider struct {
 }
 
 func checkParam(o *option) error {
-	if o.properties == nil {
+	if funk.IsEmpty(o.properties) {
 		return errors.New("properties is required")
 	}
 	if len(o.sources) == 0 {
@@ -31,7 +33,7 @@ func checkParam(o *option) error {
 	return nil
 }
 
-func newNacosProvider(o *option) (Provider, error) {
+func newNacosProvider(ctx context.Context, o *option) (Provider, error) {
 	if err := checkParam(o); err != nil {
 		return nil, err
 	}
@@ -40,6 +42,7 @@ func newNacosProvider(o *option) (Provider, error) {
 		return nil, err
 	}
 	p := &nacosProvider{
+		ctx:    ctx,
 		tp:     CfgProviderNacos,
 		mu:     &sync.RWMutex{},
 		codec:  codec.NewCodec(o.configType),
@@ -97,13 +100,29 @@ func (p *nacosProvider) readRemote(dataId string, group string) (map[string]inte
 	return setting, nil
 }
 func (p *nacosProvider) listen(dataId string, group string) error {
-	return p.client.ListenConfig(vo.ConfigParam{
+	err := p.client.ListenConfig(vo.ConfigParam{
 		DataId: dataId,
 		Group:  group,
 		OnChange: func(namespace, group, dataId, data string) {
 			p.onChange(group, dataId, data)
 		},
 	})
+	if err != nil {
+		return err
+	}
+	go func() {
+		for {
+			select {
+			case <-p.ctx.Done():
+				_ = p.client.CancelListenConfig(vo.ConfigParam{
+					DataId: dataId,
+					Group:  group,
+				})
+				return
+			}
+		}
+	}()
+	return nil
 }
 
 func (p *nacosProvider) onChange(group, dataId string, data string) {
