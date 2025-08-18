@@ -83,6 +83,12 @@ func (b *Bridge) Update(key string, msg map[string]any) {
 			"endpoint": string,
 			"path": string,
 		}
+	provider = 'zookeeper'时：
+		properties := map[string]interface{}{
+			"endpoint": string, // 多个节点用逗号分隔
+			"path": string,
+			“timeout”： time.Duration, // 默认5s
+		}
 */
 
 type Config struct {

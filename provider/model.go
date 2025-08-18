@@ -14,6 +14,7 @@ const (
 	CfgProviderEtcd      CfgProviderType = "etcd"
 	CfgProviderConsul    CfgProviderType = "consul"
 	CfgProviderFirestore CfgProviderType = "firestore"
+	CfgProviderZookeeper CfgProviderType = "zookeeper"
 )
 
 const (

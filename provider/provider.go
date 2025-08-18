@@ -23,6 +23,8 @@ func NewProvider(ctx context.Context, tp CfgProviderType, opts ...Option) (Provi
 		return newNacosProvider(ctx, o)
 	case CfgProviderConsul, CfgProviderEtcd, CfgProviderFirestore:
 		return newViperBaseProvider(ctx, tp, o)
+	case CfgProviderZookeeper:
+		return newZookeeperProvider(ctx, o)
 	default:
 		return nil, errors.New("unknown provider type")
 	}
