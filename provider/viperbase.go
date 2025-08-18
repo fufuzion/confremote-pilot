@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/spf13/viper"
+	_ "github.com/spf13/viper/remote"
 	"github.com/thoas/go-funk"
 	"time"
 )
