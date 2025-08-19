@@ -1,6 +1,7 @@
 package confremote_pilot
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/fufuzion/confremote-pilot/codec"
 	"github.com/fufuzion/confremote-pilot/provider"
@@ -24,6 +25,8 @@ func TestBridge_RegisterNacosSource(t *testing.T) {
 			Port:        8848,
 		}
 	)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	properties := map[string]interface{}{
 		constant.KEY_CLIENT_CONFIG:  clientConfig,
 		constant.KEY_SERVER_CONFIGS: []constant.ServerConfig{serverConfig},
@@ -42,7 +45,7 @@ func TestBridge_RegisterNacosSource(t *testing.T) {
 		Group:  "xxxx",
 	})
 
-	err := Instance().RegisterSource("xxxx", &Config{
+	err := Instance(ctx).RegisterSource("xxxx", &Config{
 		Provider:   provider.CfgProviderNacos,
 		Properties: properties,
 		Sources:    sources,
@@ -52,14 +55,23 @@ func TestBridge_RegisterNacosSource(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	Instance().SetHook(func(key string, msg map[string]any) {
+	Instance(ctx).SetHook(func(key string, msg map[string]any) {
 		b, _ := json.Marshal(msg)
 		t.Logf("onchange: key %s msg = %s", key, string(b))
 	})
-	for i := 0; i < 5; i++ {
-		b, _ := json.Marshal(Instance().All())
-		t.Log(string(b))
-		time.Sleep(10 * time.Second)
+	tk := time.NewTicker(time.Second * 50)
+	defer tk.Stop()
+	tk2 := time.NewTicker(time.Second * 10)
+	defer tk2.Stop()
+	for {
+		select {
+		case <-tk.C:
+			t.Log("Test Done.")
+			return
+		case <-tk2.C:
+			b, _ := json.Marshal(Instance(ctx).All())
+			t.Log(string(b))
+		}
 	}
 }
 
@@ -113,18 +125,66 @@ func TestBridge_RegisterNacosSourceBatch(t *testing.T) {
 			ConfigType: codec.CfgFileTypeYaml,
 		},
 	}
-	err := Instance().RegisterSourceBatch(sourceM)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	err := Instance(ctx).RegisterSourceBatch(sourceM)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	Instance().SetHook(func(key string, msg map[string]any) {
+	Instance(ctx).SetHook(func(key string, msg map[string]any) {
 		b, _ := json.Marshal(msg)
 		t.Logf("onchange: key %s msg = %s", key, string(b))
 	})
-	for i := 0; i < 3; i++ {
-		b, _ := json.Marshal(Instance().All())
-		t.Log(string(b))
-		time.Sleep(10 * time.Second)
+	tk := time.NewTicker(time.Second * 50)
+	defer tk.Stop()
+	tk2 := time.NewTicker(time.Second * 10)
+	defer tk2.Stop()
+	for {
+		select {
+		case <-tk.C:
+			t.Log("Test Done.")
+			return
+		case <-tk2.C:
+			b, _ := json.Marshal(Instance(ctx).All())
+			t.Log(string(b))
+		}
+	}
+}
+
+func TestBridge_RegisterZookeeperSource(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	properties := map[string]interface{}{
+		"endpoint": "xxxx,xxxx",
+		"path":     "xxxx",
+		"timeout":  2000,
+	}
+	err := Instance(ctx).RegisterSource("zk_config", &Config{
+		Provider:   provider.CfgProviderZookeeper,
+		Properties: properties,
+		ConfigType: codec.CfgFileTypeYaml,
+	})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	Instance(ctx).SetHook(func(key string, msg map[string]any) {
+		b, _ := json.Marshal(msg)
+		t.Logf("onchange: key %s msg = %s", key, string(b))
+	})
+	tk := time.NewTicker(time.Second * 50)
+	defer tk.Stop()
+	tk2 := time.NewTicker(time.Second * 10)
+	defer tk2.Stop()
+	for {
+		select {
+		case <-tk.C:
+			t.Log("Test Done.")
+			return
+		case <-tk2.C:
+			b, _ := json.Marshal(Instance(ctx).All())
+			t.Log(string(b))
+		}
 	}
 }

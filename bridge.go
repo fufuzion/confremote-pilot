@@ -87,7 +87,7 @@ func (b *Bridge) Update(key string, msg map[string]any) {
 		properties := map[string]interface{}{
 			"endpoint": string, // 多个节点用逗号分隔
 			"path": string,
-			“timeout”： time.Duration, // 默认5s
+			“timeout”： time.Duration/number/string, // number类型时单位为Millisecond，默认5s
 		}
 */
 

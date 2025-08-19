@@ -40,10 +40,12 @@ func newZookeeperProvider(ctx context.Context, o *option) (Provider, error) {
 	if !ok {
 		return nil, errors.New("path is required")
 	}
+	var err error
 	timeout := 5 * time.Second
 	if timeoutVal, ok := o.properties["timeout"]; ok {
-		if timeoutInt, ok := timeoutVal.(int); ok {
-			timeout = time.Duration(timeoutInt) * time.Second
+		timeout, err = parseTimeout(timeoutVal)
+		if err != nil {
+			return nil, err
 		}
 	}
 	servers := strings.Split(endpoint, ",")
@@ -74,6 +76,27 @@ func newZookeeperProvider(ctx context.Context, o *option) (Provider, error) {
 	provider.watchConnection()
 
 	return provider, nil
+}
+
+func parseTimeout(val interface{}) (time.Duration, error) {
+	switch v := val.(type) {
+	case time.Duration:
+		return v, nil
+	case int:
+		return time.Duration(v) * time.Millisecond, nil
+	case int32:
+		return time.Duration(v) * time.Millisecond, nil
+	case int64:
+		return time.Duration(v) * time.Millisecond, nil
+	case float32:
+		return time.Duration(v * float32(time.Millisecond)), nil
+	case float64:
+		return time.Duration(v * float64(time.Millisecond)), nil
+	case string:
+		return time.ParseDuration(v)
+	default:
+		return 0, fmt.Errorf("invalid timeout type: %T", val)
+	}
 }
 func (p *zookeeperProvider) Name() string {
 	return p.tp.ToString()
